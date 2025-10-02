@@ -1,0 +1,125 @@
+# Railway
+
+## Deploy an example project
+
+https://github.com/joshstevens19/rrelayer/tree/master/providers/railway
+
+1. Clone the relevant directory
+
+  ```bash
+  # this will clone the railway directory
+  mkdir rrelayer-railway && cd rrelayer-railway
+  git clone \
+    --depth=1 \
+    --no-checkout \
+    --filter=tree:0 \
+    https://github.com/joshstevens19/rrelayer .
+  git sparse-checkout set --no-cone providers/railway .
+  git checkout && cp -r providers/railway/* . && rm -rf providers
+  ```
+
+2. Initialize a new Railway project
+
+  Install [Railway CLI](https://docs.railway.com/guides/cli) if not already installed.
+
+  ```bash
+  railway login
+  ```
+
+
+  ```bash
+  railway init --name rrelayer-example
+  ```
+
+3. Create a service and link it to the project
+
+  ```bash
+  railway up --detach
+  railway link
+  ? Select a project
+  > rrelayer-example
+  ? Select an environment
+  > production
+  ? Select a service
+  > rrelayer-example
+  ```
+
+4. Create a Postgres database
+
+  ```bash
+  railway add --database postgres
+  ```
+
+5. Configure environment variables
+
+  ```bash
+  railway open
+  ```
+
+  - Open the service "Variables" tab:
+
+    - Select "Add Variable Reference" and add a reference for `DATABASE_URL` and append ?sslmode=disable to the end of the value. The result should look like `${{Postgres.DATABASE_URL}}?sslmode=disable`.
+
+    - Select "Add Variable Reference" and add a reference for `POSTGRES_PASSWORD`.
+
+    - Select "New Variable" with name `PORT` and value `3000` (This is the default value for the rrelayer service, update this variable accordingly if the value is changed in the rrelayer.yaml api_config).
+
+  - Hit "Deploy" or press Shift+Enter.
+
+6. Create a domain to access the API
+
+  ```bash
+  railway domain
+  ```
+
+7. Redeploy the service
+
+  ```bash
+  railway up
+  ```
+
+## Health Monitoring
+
+rrelayer includes a built-in health endpoint that provides system status information. The health endpoint is available on the same port as the API and provides real-time insights into service health.
+
+### Accessing Health Endpoint
+
+The health endpoint is automatically available when you start rrelayer:
+
+- `GET /health` - Returns health status
+
+Example health response:
+
+```json
+{
+  "status": "healthy"
+}
+```
+
+### Monitoring in Production
+
+For production deployments on Railway, you can:
+
+1. **Use Railway's built-in health checks** configured in `railway.toml`:
+   ```toml
+   healthcheckPath = "/health"
+   healthcheckTimeout = 100
+   ```
+
+2. **Set up monitoring alerts** based on HTTP status codes:
+   - `200 OK` - System is healthy
+   - Non-200 status - System has issues
+
+3. **Access health endpoints** through your Railway domain:
+   ```
+   https://your-app.railway.app/health
+   ```
+
+### Custom Health Port
+
+The health endpoint runs on the same port configured in your `rrelayer.yaml` file:
+
+```yaml
+api_config:
+  port: 3000
+```
